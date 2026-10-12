@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.py[cod]
+crawler_output/
+test_output/
+data/

@@ -47,6 +47,7 @@ class CandidateRules:
     year_start: int | None = None
     year_end: int | None = None
     dataset_detail_url_patterns: tuple[str, ...] = ()
+    discovery_urls: tuple[str, ...] = ()
     scope_ready: bool = False
     allowed_domains: tuple[str, ...] = ()
     file_types: tuple[str, ...] = ()
@@ -76,6 +77,8 @@ class Task:
     depth: int = 0
     discovered_from: str = ""
     link_text: str = ""
+    record_name: str = ""
+    publication_date: str = ""
 
 
 @dataclass

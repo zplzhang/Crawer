@@ -50,7 +50,7 @@ def parse_candidate_rules(value: object) -> CandidateRules:
         raise ValueError("crawl 必须是对象")
     known = {"max_depth", "max_pages", "max_items", "min_link_score", "include_terms", "exclude_terms",
              "region_terms", "year_start", "year_end", "dataset_detail_url_patterns", "scope_ready",
-             "allowed_domains", "file_types", "download"}
+             "allowed_domains", "file_types", "download", "discovery_urls"}
     unknown = set(value) - known
     if unknown:
         raise ValueError(f"crawl 含未知字段: {', '.join(sorted(unknown))}")
@@ -70,6 +70,11 @@ def parse_candidate_rules(value: object) -> CandidateRules:
     year_end = _optional_int(value.get("year_end"), "year_end", 1000)
     if year_start is not None and year_end is not None and year_start > year_end:
         raise ValueError("crawl.year_start 不能大于 year_end")
+    discovery_urls = tuple(normalize_url(url) for url in _string_list(
+        value.get("discovery_urls", []), "discovery_urls"
+    ))
+    if any(not url for url in discovery_urls):
+        raise ValueError("crawl.discovery_urls 必须是有效网址")
     return CandidateRules(
         max_depth=_optional_int(value.get("max_depth"), "max_depth", 0),
         max_pages=_optional_int(value.get("max_pages"), "max_pages", 1),
@@ -81,6 +86,7 @@ def parse_candidate_rules(value: object) -> CandidateRules:
         year_start=year_start,
         year_end=year_end,
         dataset_detail_url_patterns=_string_list(value.get("dataset_detail_url_patterns", []), "dataset_detail_url_patterns"),
+        discovery_urls=discovery_urls,
         scope_ready=scope_ready,
         allowed_domains=allowed_domains,
         file_types=file_types,

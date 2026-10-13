@@ -78,6 +78,13 @@
       "year_start": null,
       "year_end": null,
       "dataset_detail_url_patterns": [],
+      "discovery_urls": [
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=mest",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=bemesting",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=gebruiksnormen",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=Meststoffenwet",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=Nitraatrichtlijn"
+      ],
       "allowed_domains": [
         "wetten.overheid.nl",
         "zoek.officielebekendmakingen.nl"

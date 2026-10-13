@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import json
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Iterable
@@ -11,6 +12,7 @@ from urllib.parse import urlsplit
 from .clients.http import HttpClient
 from .config import CrawlConfig
 from .models import Record, Seed, Task, utc_now
+from .parsers.api import discover_json_links
 from .parsers.page import classify_source, discover_links, extract_metadata, extract_years, score_link
 from .storage.catalogue import StateStore
 from .storage.filesystem import FileStore
@@ -43,12 +45,12 @@ class Crawler:
             candidate_id=task.seed.candidate_id,
             source_id=task.seed.source_id,
             priority=task.seed.priority,
-            record_name=task.link_text or task.seed.name,
+            record_name=task.record_name or task.link_text or task.seed.name,
             first_batch_scope=task.seed.first_batch_scope,
             license_and_boundaries=task.seed.license_and_boundaries,
             country_or_region=task.seed.country_or_region,
             publisher=task.seed.publisher,
-            publication_date=task.seed.publication_date,
+            publication_date=task.publication_date or task.seed.publication_date,
             usage_license=task.seed.usage_license or "未识别，需人工核验",
             original_url=task.url,
             seed_url=task.seed.url,
@@ -205,6 +207,39 @@ class Crawler:
                 return record, []
 
             mime = content_type.split(";", 1)[0].lower()
+            if "json" in mime:
+                try:
+                    payload = json.loads(response.content.decode(response.encoding or "utf-8", errors="replace"))
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    return self._failed_record(task, f"JSON 解析失败: {exc}", str(response.status_code)), []
+                record = self._base_record(task)
+                record.original_url = final_url
+                record.download_date = utc_now()
+                record.http_status = str(response.status_code)
+                record.file_type = "JSON"
+                record.scope_status = "范围内"
+                record.download_status = "仅记录网页"
+                record.failure_reason = "公开检索接口，用于发现资料链接"
+                discovered = []
+                max_depth = rules.max_depth if rules.max_depth is not None else self.config.max_depth
+                if max_depth > 0:
+                    for link in discover_json_links(payload, final_url):
+                        child_depth = task.depth if is_pagination_link(link.url, link.title) else task.depth + 1
+                        if child_depth > max_depth:
+                            continue
+                        if is_excluded(link.url, self.config.excluded_domains):
+                            continue
+                        if not within_site_scope(link.url, task.seed.url, rules.allowed_domains):
+                            continue
+                        if scope_mismatch(rules, f"{link.title} {link.url}"):
+                            continue
+                        discovered.append(Task(
+                            url=link.url, seed=task.seed, depth=child_depth,
+                            discovered_from=final_url, link_text=link.title,
+                            record_name=link.title, publication_date=link.publication_date,
+                        ))
+                self.state.save_url_state(final_url, response.headers)
+                return record, discovered
             if "html" not in mime and mime not in {"", "text/plain"}:
                 record = self._failed_record(task, f"不支持的内容类型: {content_type}", str(response.status_code))
                 record.file_type = mime
@@ -277,7 +312,11 @@ class Crawler:
 
     def crawl(self, seeds: Iterable[Seed]) -> None:
         seed_list = list(seeds)
-        queue: deque[Task] = deque(Task(url=seed.url, seed=seed) for seed in seed_list)
+        queue: deque[Task] = deque()
+        for seed in seed_list:
+            queue.append(Task(url=seed.url, seed=seed))
+            for url in seed.rules.discovery_urls:
+                queue.append(Task(url=url, seed=seed, link_text="公开检索接口"))
         self._seeds = {seed.candidate_id or seed.url: seed for seed in seed_list}
         visited: set[tuple[str, str]] = set()
         site_counts: dict[str, int] = defaultdict(int)
@@ -304,7 +343,8 @@ class Crawler:
             self._candidate_counts[candidate_key] += 1
             processed += 1
             task = Task(url=url, seed=task.seed, depth=task.depth,
-                        discovered_from=task.discovered_from, link_text=task.link_text)
+                        discovered_from=task.discovered_from, link_text=task.link_text,
+                        record_name=task.record_name, publication_date=task.publication_date)
             logging.info("[%s/%s] depth=%s %s", processed, self.config.max_pages, task.depth, url)
             record, discovered = self.process(task)
             self.state.save_record(record)

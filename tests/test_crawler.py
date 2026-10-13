@@ -11,6 +11,7 @@ from openpyxl import load_workbook
 
 from source_crawler import cli, config, models, pipeline
 from source_crawler.parsers import input as source_input, page as metadata
+from source_crawler.parsers.api import discover_json_links
 from source_crawler.validators import urls
 from source_crawler.validators.scope import is_pagination_link, scope_mismatch
 
@@ -78,6 +79,24 @@ class CrawlerTests(unittest.TestCase):
             "https://www.rvo.nl/onderwerpen/mest/tabellen", "Tabellen stikstof en mest"
         ), 3)
         self.assertTrue(is_pagination_link("https://example.org/archief?page=2", "Volgende"))
+
+    def test_json_search_results_keep_title_date_and_next_page(self):
+        links = discover_json_links({
+            "searchResults": [{"title": "Mestnormen 2026", "created": "2026-01-01",
+                               "urlAlias": "/files/mestnormen-2026.pdf"}],
+            "pager": {"nextPage": 1},
+        }, "https://www.rvo.nl/api/rvo/v1/search-publications?search=mest")
+        by_url = {link.url: link for link in links}
+        file_link = by_url["https://www.rvo.nl/files/mestnormen-2026.pdf"]
+        self.assertEqual(file_link.title, "Mestnormen 2026")
+        self.assertEqual(file_link.publication_date, "2026-01-01")
+        self.assertTrue(any("page=1" in url for url in by_url))
+
+    def test_discovery_urls_are_loaded_with_candidate_rules(self):
+        rules = source_input.parse_candidate_rules({
+            "discovery_urls": ["https://example.org/api/search?q=agriculture"],
+        })
+        self.assertEqual(rules.discovery_urls, ("https://example.org/api/search?q=agriculture",))
 
     def test_text_input_is_deduplicated(self):
         with tempfile.TemporaryDirectory() as directory:

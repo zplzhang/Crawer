@@ -14,6 +14,7 @@ from .config import CrawlConfig
 from .models import Record, Seed, Task, utc_now
 from .parsers.api import discover_json_links
 from .parsers.page import classify_source, discover_links, extract_metadata, extract_years, score_link
+from .parsers.sru import discover_sru_links
 from .storage.catalogue import StateStore
 from .storage.filesystem import FileStore
 from .storage.logger import CrawlLogger
@@ -166,8 +167,12 @@ class Crawler:
             if not within_site_scope(final_url, task.seed.url, rules.allowed_domains):
                 return self._restricted_record(task, "重定向地址超出该入口的允许域名"), []
             content_type = response.headers.get("Content-Type", "")
+            mime = content_type.split(";", 1)[0].lower()
+            structured_search_response = "json" in mime or (
+                "xml" in mime and "operation=searchRetrieve" in final_url
+            )
             extension = detect_extension(final_url, content_type, response.headers.get("Content-Disposition", ""))
-            if extension and "html" not in content_type.lower():
+            if extension and "html" not in content_type.lower() and not structured_search_response:
                 if rules.file_types and extension.lstrip(".") not in rules.file_types:
                     return self._restricted_record(task, "文件类型不在该入口配置的允许范围内", extension), []
                 mismatch = scope_mismatch(rules, f"{task.link_text or (task.seed.name if task.depth == 0 else '')} {final_url}")
@@ -206,7 +211,6 @@ class Crawler:
                     record.failure_reason = str(exc)
                 return record, []
 
-            mime = content_type.split(";", 1)[0].lower()
             if "json" in mime:
                 try:
                     payload = json.loads(response.content.decode(response.encoding or "utf-8", errors="replace"))
@@ -224,6 +228,39 @@ class Crawler:
                 max_depth = rules.max_depth if rules.max_depth is not None else self.config.max_depth
                 if max_depth > 0:
                     for link in discover_json_links(payload, final_url):
+                        child_depth = task.depth if is_pagination_link(link.url, link.title) else task.depth + 1
+                        if child_depth > max_depth:
+                            continue
+                        if is_excluded(link.url, self.config.excluded_domains):
+                            continue
+                        if not within_site_scope(link.url, task.seed.url, rules.allowed_domains):
+                            continue
+                        if scope_mismatch(rules, f"{link.title} {link.url}"):
+                            continue
+                        discovered.append(Task(
+                            url=link.url, seed=task.seed, depth=child_depth,
+                            discovered_from=final_url, link_text=link.title,
+                            record_name=link.title, publication_date=link.publication_date,
+                        ))
+                self.state.save_url_state(final_url, response.headers)
+                return record, discovered
+            if "xml" in mime and "operation=searchRetrieve" in final_url:
+                try:
+                    links = discover_sru_links(response.content, final_url)
+                except Exception as exc:
+                    return self._failed_record(task, f"SRU XML 解析失败: {exc}", str(response.status_code)), []
+                record = self._base_record(task)
+                record.original_url = final_url
+                record.download_date = utc_now()
+                record.http_status = str(response.status_code)
+                record.file_type = "XML"
+                record.scope_status = "范围内"
+                record.download_status = "仅记录网页"
+                record.failure_reason = "官方 SRU 检索接口，用于发现资料详情页"
+                discovered = []
+                max_depth = rules.max_depth if rules.max_depth is not None else self.config.max_depth
+                if max_depth > 0:
+                    for link in links:
                         child_depth = task.depth if is_pagination_link(link.url, link.title) else task.depth + 1
                         if child_depth > max_depth:
                             continue
@@ -263,12 +300,12 @@ class Crawler:
             record.file_type = "HTML"
             mismatch = scope_mismatch(rules, f"{record.record_name} {final_url} {soup.get_text(' ', strip=True)[:12000]}")
             record.scope_status = "范围外" if mismatch else "范围内"
-            if not mismatch and is_dataset_detail(final_url, rules):
-                record.item_type = "数据集详情页"
             if record.source_category == "政策相关页面（待核验）" and not record.policy_status:
                 record.policy_status = "待核验"
             links = discover_links(soup, final_url)
             downloads = [item for item in links if detect_extension(item[0])]
+            if not mismatch and not downloads and is_dataset_detail(final_url, rules):
+                record.item_type = "数据集详情页"
             record.download_status = "发现可下载文件" if downloads else "仅记录网页"
             if not downloads:
                 record.failure_reason = "页面未发现可直接下载的目标文件"

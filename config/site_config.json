@@ -4,8 +4,7 @@
     "source_url": "https://www.rvo.nl/onderwerpen/mest/tabellen",
     "target_region": "荷兰",
     "material_or_data": "施肥与氮相关制度",
-    "first_batch_scope": "RVO年度施肥规范、表格与法源。氮沉降及许可制度按独立专题扩展。",
-    "license_and_boundaries": "年度表存在修订/勘误；施肥氮限量不等于氮沉降许可规则。逐份核验使用许可、版本和实施时期。",
+    "first_batch_scope": "荷兰施肥与氮相关制度：官方公报、法律、政策文件、年度表格和专题数据。",
     "content_fields": [
       "名称",
       "发布机构",
@@ -15,7 +14,7 @@
     ]
   },
   "run": {
-    "output_dir": "~/Desktop/RVO_荷兰施肥与氮制度_首批范围_2026-10-13",
+    "output_dir": "~/Desktop/荷兰施肥与氮制度_10000条_2026-10-13",
     "output_format": "xlsx",
     "include_fao": false,
     "exclude_domains": [
@@ -24,7 +23,7 @@
       "projects.rvo.nl",
       "english.rvo.nl"
     ],
-    "max_candidates": 1,
+    "max_candidates": 2,
     "max_pages": null,
     "max_pages_per_site": null,
     "max_depth": 3,
@@ -48,32 +47,8 @@
       "max_pages": 50000,
       "max_depth": 2,
       "min_link_score": 2,
-      "include_terms": [
-        "stikstof",
-        "bemest",
-        "gebruiksnorm",
-        "forfait",
-        "tabel",
-        "Meststoffenwet",
-        "Nitraatrichtlijn",
-        "wetgeving",
-        "regeling"
-      ],
-      "exclude_terms": [
-        "transport",
-        "vervoer",
-        "aanvoer",
-        "afvoer",
-        "mestcodes",
-        "rvdm",
-        "vzc",
-        "intermediair",
-        "boetebeleid",
-        "handhaving",
-        "fosfaatrechten",
-        "export",
-        "import"
-      ],
+      "include_terms": [],
+      "exclude_terms": [],
       "region_terms": [],
       "year_start": null,
       "year_end": null,
@@ -102,5 +77,27 @@
       "download": true
     }
   },
-  "candidates": []
+  "candidates": [
+    {
+      "id": "NL-RVO-MEST",
+      "url": "https://www.rvo.nl/onderwerpen/mest/tabellen"
+    },
+    {
+      "id": "NL-OFFICIAL-PUBLICATIONS",
+      "url": "https://repository.overheid.nl/sru?operation=searchRetrieve&version=2.0&query=c.product-area%3D%3Dofficielepublicaties+AND+cql.textAndIndexes+any+%22mest%22&maximumRecords=100&startRecord=1",
+      "publisher": "KOOP（荷兰官方政府出版物知识与开发中心）",
+      "material_or_data": "荷兰施肥与氮相关制度",
+      "first_batch_scope": "荷兰施肥与氮相关制度：官方公报、法律、政策文件、年度表格和专题数据。",
+      "country_or_region": "荷兰",
+      "crawl": {
+        "discovery_urls": [],
+        "allowed_domains": [
+          "zoek.officielebekendmakingen.nl"
+        ],
+        "dataset_detail_url_patterns": [
+          "zoek.officielebekendmakingen.nl/"
+        ]
+      }
+    }
+  ]
 }

@@ -43,6 +43,6 @@ def is_pagination_link(url: str, link_text: str) -> bool:
         return True
     parts = urlsplit(url)
     query_keys = {key.casefold() for key in parse_qs(parts.query)}
-    return bool(query_keys & {"page", "pagenumber", "page_no", "pageindex"}) or bool(
+    return bool(query_keys & {"page", "pagenumber", "page_no", "pageindex", "startrecord"}) or bool(
         re.search(r"/(?:page|pagina)/\d+(?:/|$)", parts.path, re.I)
     )

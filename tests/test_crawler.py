@@ -12,6 +12,7 @@ from openpyxl import load_workbook
 from source_crawler import cli, config, models, pipeline
 from source_crawler.parsers import input as source_input, page as metadata
 from source_crawler.parsers.api import discover_json_links
+from source_crawler.parsers.sru import discover_sru_links
 from source_crawler.validators import urls
 from source_crawler.validators.scope import is_pagination_link, scope_mismatch
 
@@ -98,6 +99,18 @@ class CrawlerTests(unittest.TestCase):
         })
         self.assertEqual(rules.discovery_urls, ("https://example.org/api/search?q=agriculture",))
 
+    def test_sru_results_keep_metadata_and_generate_next_batch(self):
+        xml = b'''<?xml version="1.0"?><sru:searchRetrieveResponse xmlns:sru="urn:sru"
+            xmlns:dcterms="http://purl.org/dc/terms/"><sru:numberOfRecords>201</sru:numberOfRecords>
+            <sru:records><sru:record><dcterms:title>Mestbeleid 2026</dcterms:title>
+            <dcterms:available>2026-01-02</dcterms:available>
+            <dcterms:hasVersion resourceIdentifier="https://example.org/mest-2026.html"/>
+            </sru:record></sru:records></sru:searchRetrieveResponse>'''
+        links = discover_sru_links(xml, "https://repository.example/sru?operation=searchRetrieve&maximumRecords=100&startRecord=1")
+        by_url = {link.url: link for link in links}
+        self.assertEqual(by_url["https://example.org/mest-2026.html"].publication_date, "2026-01-02")
+        self.assertTrue(any("startRecord=101" in url for url in by_url))
+
     def test_text_input_is_deduplicated(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "urls.txt"
@@ -110,23 +123,23 @@ class CrawlerTests(unittest.TestCase):
         self.assertEqual(config.DEFAULT_INPUT.name, "site_config.json")
         default_payload = json.loads(config.DEFAULT_INPUT.read_text(encoding="utf-8"))
         seeds = list(source_input.iter_input_seeds([], str(config.DEFAULT_INPUT), None, 1, None))
-        self.assertEqual(len(seeds), 1)
-        self.assertEqual(seeds[0].candidate_id, "SITE-ENTRY")
+        self.assertEqual(len(seeds), 2)
+        self.assertEqual(seeds[0].candidate_id, "NL-RVO-MEST")
         self.assertEqual(seeds[0].url, default_payload["job"]["source_url"])
         self.assertEqual(seeds[0].country_or_region, default_payload["job"]["target_region"])
         output = io.StringIO()
         with contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(cli.main(["--dry-run"]), 0)
-        self.assertIn("SITE-ENTRY", output.getvalue())
+        self.assertIn("NL-RVO-MEST", output.getvalue())
         self.assertTrue(seeds[0].first_batch_scope)
-        self.assertTrue(seeds[0].license_and_boundaries)
+        self.assertEqual(seeds[0].license_and_boundaries, "")
         self.assertTrue(all(seed.rules.max_items == 10000 for seed in seeds))
         self.assertTrue(all(seed.rules.scope_ready for seed in seeds))
         output = io.StringIO()
         with contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
-            self.assertEqual(cli.main(["--candidate-id", "SITE-ENTRY", "--dry-run"]), 0)
+            self.assertEqual(cli.main(["--candidate-id", "NL-RVO-MEST", "--dry-run"]), 0)
         self.assertEqual(len(output.getvalue().splitlines()), 1)
-        self.assertIn("SITE-ENTRY", output.getvalue())
+        self.assertIn("NL-RVO-MEST", output.getvalue())
 
     def test_large_collection_requires_confirmed_scope(self):
         with self.assertLogs(level="WARNING"):

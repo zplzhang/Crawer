@@ -9,7 +9,11 @@ from ..models import CandidateRules
 
 
 YEAR_PATTERN = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
-PAGINATION_TEXT = {"next", "next page", "more", "load more", "下一页", "下页", "更多", "加载更多"}
+PAGINATION_TEXT = {
+    "next", "next page", "more", "load more",
+    "volgende", "volgende pagina", "meer", "laad meer",
+    "下一页", "下页", "更多", "加载更多",
+}
 
 
 def scope_mismatch(rules: CandidateRules, text: str) -> str:

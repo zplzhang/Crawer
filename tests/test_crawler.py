@@ -12,7 +12,7 @@ from openpyxl import load_workbook
 from source_crawler import cli, config, models, pipeline
 from source_crawler.parsers import input as source_input, page as metadata
 from source_crawler.validators import urls
-from source_crawler.validators.scope import scope_mismatch
+from source_crawler.validators.scope import is_pagination_link, scope_mismatch
 
 
 class CrawlerTests(unittest.TestCase):
@@ -73,6 +73,12 @@ class CrawlerTests(unittest.TestCase):
         self.assertEqual(links[0][0], "https://example.org/files/data.csv")
         self.assertTrue(all(not url.startswith("mailto:") for url, _, _ in links))
 
+    def test_dutch_official_data_links_and_pagination_are_relevant(self):
+        self.assertGreaterEqual(metadata.score_link(
+            "https://www.rvo.nl/onderwerpen/mest/tabellen", "Tabellen stikstof en mest"
+        ), 3)
+        self.assertTrue(is_pagination_link("https://example.org/archief?page=2", "Volgende"))
+
     def test_text_input_is_deduplicated(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "urls.txt"
@@ -83,11 +89,12 @@ class CrawlerTests(unittest.TestCase):
     def test_default_candidate_list_is_ready_for_one_command_start(self):
         self.assertTrue(config.DEFAULT_INPUT.is_file())
         self.assertEqual(config.DEFAULT_INPUT.name, "site_config.json")
+        default_payload = json.loads(config.DEFAULT_INPUT.read_text(encoding="utf-8"))
         seeds = list(source_input.iter_input_seeds([], str(config.DEFAULT_INPUT), None, 1, None))
         self.assertEqual(len(seeds), 1)
         self.assertEqual(seeds[0].candidate_id, "SITE-ENTRY")
-        self.assertEqual(seeds[0].url, "https://example.org/data/")
-        self.assertEqual(seeds[0].country_or_region, "填写目标国家或地区")
+        self.assertEqual(seeds[0].url, default_payload["job"]["source_url"])
+        self.assertEqual(seeds[0].country_or_region, default_payload["job"]["target_region"])
         output = io.StringIO()
         with contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(cli.main(["--dry-run"]), 0)

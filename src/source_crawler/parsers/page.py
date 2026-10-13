@@ -36,6 +36,20 @@ RELEVANT_TERMS = (
     "条例",
     "公报",
     "文献",
+    "downloaden",
+    "document",
+    "publicatie",
+    "tabel",
+    "gegevens",
+    "statistiek",
+    "mest",
+    "stikstof",
+    "bemesting",
+    "gebruiksnorm",
+    "forfait",
+    "wetgeving",
+    "regelgeving",
+    "regeling",
 )
 LOW_VALUE_TERMS = (
     "login",
@@ -50,6 +64,9 @@ LOW_VALUE_TERMS = (
     "注册",
     "联系我们",
     "隐私",
+    "inloggen",
+    "nieuwsbrief",
+    "contact",
 )
 POLICY_TERMS = (
     "regulation",
@@ -65,6 +82,10 @@ POLICY_TERMS = (
     "条例",
     "法令",
     "政策",
+    "wet",
+    "wetgeving",
+    "regelgeving",
+    "regeling",
     "决定",
 )
 BLOG_TERMS = ("blog", "opinion", "commentary", "观点", "博客", "评论")

@@ -131,7 +131,7 @@ class CrawlerTests(unittest.TestCase):
         with contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(cli.main(["--dry-run"]), 0)
         self.assertIn("NL-RVO-MEST", output.getvalue())
-        self.assertTrue(seeds[0].first_batch_scope)
+        self.assertEqual(seeds[0].first_batch_scope, "")
         self.assertEqual(seeds[0].license_and_boundaries, "")
         self.assertTrue(all(seed.rules.max_items == 10000 for seed in seeds))
         self.assertTrue(all(seed.rules.scope_ready for seed in seeds))

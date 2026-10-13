@@ -4,7 +4,6 @@
     "source_url": "https://www.rvo.nl/onderwerpen/mest/tabellen",
     "target_region": "荷兰",
     "material_or_data": "施肥与氮相关制度",
-    "first_batch_scope": "荷兰施肥与氮相关制度：官方公报、法律、政策文件、年度表格和专题数据。",
     "content_fields": [
       "名称",
       "发布机构",
@@ -58,7 +57,12 @@
         "https://www.rvo.nl/api/rvo/v1/search-publications?search=bemesting",
         "https://www.rvo.nl/api/rvo/v1/search-publications?search=gebruiksnormen",
         "https://www.rvo.nl/api/rvo/v1/search-publications?search=Meststoffenwet",
-        "https://www.rvo.nl/api/rvo/v1/search-publications?search=Nitraatrichtlijn"
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=Nitraatrichtlijn",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=stikstof",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=ammoniak",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=fosfaat",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=dierlijke%20mest",
+        "https://www.rvo.nl/api/rvo/v1/search-publications?search=mestbeleid"
       ],
       "allowed_domains": [
         "wetten.overheid.nl",
@@ -85,10 +89,6 @@
     {
       "id": "NL-OFFICIAL-PUBLICATIONS",
       "url": "https://repository.overheid.nl/sru?operation=searchRetrieve&version=2.0&query=c.product-area%3D%3Dofficielepublicaties+AND+cql.textAndIndexes+any+%22mest%22&maximumRecords=100&startRecord=1",
-      "publisher": "KOOP（荷兰官方政府出版物知识与开发中心）",
-      "material_or_data": "荷兰施肥与氮相关制度",
-      "first_batch_scope": "荷兰施肥与氮相关制度：官方公报、法律、政策文件、年度表格和专题数据。",
-      "country_or_region": "荷兰",
       "crawl": {
         "discovery_urls": [],
         "allowed_domains": [
